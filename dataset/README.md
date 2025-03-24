@@ -19,22 +19,22 @@
 纬度 latitude: 8
 经度 longitude: 8
 ## eastsea.nc
-东海数据，经纬度范围：'lat_range': (26, 33), 'lon_range': (122, 128)
+东海数据，经纬度范围：'lat_range': (26, 32), 'lon_range': (122, 128)
 
 变量特征:
 
 时间 time: shape=(3600,)
-纬度 latitude: shape=(28,)
+纬度 latitude: shape=(24,)
 经度 longitude: shape=(24,)
-海盐 smap_sss: shape=(3600, 40, 40)
-海温 anc_sst: shape=(3600, 40, 40)
-风速 smap_spd: shape=(3600, 40, 40)
-海盐不确定度 smap_sss_uncertainty: shape=(3600, 40, 40)
+海盐 smap_sss: shape=(3600, 24, 24)
+海温 anc_sst: shape=(3600, 24, 24)
+风速 smap_spd: shape=(3600, 24, 24)
+海盐不确定度 smap_sss_uncertainty: shape=(3600, 24, 24)
 
 维度信息:
 
 time: 3600
-latitude: 40
-longitude: 40
+latitude: 24
+longitude: 24
 ## showdata.py
 用于展示数据
