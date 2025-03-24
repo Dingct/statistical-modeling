@@ -30,7 +30,7 @@
  纬度 latitude: shape=(40,)
  经度 longitude: shape=(40,)
  海盐 smap_sss: shape=(3600, 40, 40)
-海温 anc_sst: shape=(3600, 40, 40)
+ 海温 anc_sst: shape=(3600, 40, 40)
 风速 smap_spd: shape=(3600, 40, 40)
 海盐不确定度 smap_sss_uncertainty: shape=(3600, 40, 40)
 
