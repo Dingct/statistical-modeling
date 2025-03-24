@@ -1,7 +1,7 @@
 import netCDF4 as nc  
 
 # 文件路径  
-file_path = 'lab/dataset/eastsea.nc'
+file_path = 'lab/dataset/Yangtze.nc'
 
 # 打开 NetCDF 文件  
 dataset = nc.Dataset(file_path)  
