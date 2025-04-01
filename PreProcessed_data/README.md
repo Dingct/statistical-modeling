@@ -1,6 +1,6 @@
 
 预处理好的数据
-使用np读入即可，示例：yangtze_date = np.load('yangtze_processed.npy') 
+使用np读入即可，示例：yangtze_data = np.load('yangtze_processed.npy') 
 
 yangtze_processed.npy是(3600,64,2)的三维数组，第三维是[anc , smap] 
 
