@@ -206,3 +206,20 @@ def metrics(predict, real):
     wmape = (wmape1+wmape2)/2
 
     return loss, mape, rmse, wmape
+
+def testmetrics(predict, real):
+    loss1 = MAE_torch(predict[...,:1], real[...,:1], 0.0).item()
+    loss2 = MAE_torch(predict[...,1:2], real[...,1:2], 0.0).item()
+    mape1 = MAPE_torch(predict[...,:1], real[...,:1], 0.0).item()
+    mape2 = MAPE_torch(predict[...,1:2], real[...,1:2], 0.0).item()
+    rmse1 = RMSE_torch(predict[...,:1], real[...,:1], 0.0).item()
+    rmse2 = RMSE_torch(predict[...,1:2], real[...,1:2], 0.0).item()
+    wmape1 = WMAPE_torch(predict[...,:1], real[...,:1], 0.0).item()
+    wmape2 = WMAPE_torch(predict[...,1:2], real[...,1:2], 0.0).item()
+
+    loss = (loss1+loss2)/2 # 对loss取平均值
+    mape = (mape1+mape2)/2
+    rmse = (rmse1+rmse2)/2
+    wmape = (wmape1+wmape2)/2
+
+    return loss, mape, rmse, wmape
