@@ -21,7 +21,7 @@ parser.add_argument("--input_len", type=int, default=12, help="input_len")
 
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
 
-（3）训练示例：
+（2）训练示例：
 ```
 python train.py --channels 64 --learning_rate 0.001
 ```
