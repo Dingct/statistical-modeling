@@ -283,7 +283,7 @@ def main():
                     pred = scaler.inverse_transform(yhat[:, j, :])
                     real = scaler.inverse_transform(realy[:, j, :])
                     # real = realy[:, :, j]
-                    metrics = util.metrics(pred, real) # 多因素衡量方法
+                    metrics = util.testmetrics(pred, real) # 多因素衡量方法
                     log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
                     print(
                         log.format(
@@ -370,7 +370,7 @@ def main():
     for i in range(args.output_len):
         pred = scaler.inverse_transform(yhat[:, i, :])
         real = scaler.inverse_transform(realy[:, i, :])
-        metrics = util.metrics(pred, real) # 多因素
+        metrics = util.testmetrics(pred, real) # 多因素
         log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
         print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))
 
