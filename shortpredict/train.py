@@ -92,7 +92,7 @@ class trainer:
         output = self.model(input)
         real = real_val[...,0:2] # 多因素
         predict = self.scaler.inverse_transform(output)
-        real = self.scaler.inverse_transform(real)  # 64 12 8*8 2
+        real = self.scaler.inverse_transform(real)  # 64 12 576 2
 
         loss,mape,rmse,wmape = util.metrics(predict, real) # 多因素衡量方法
 
@@ -164,7 +164,7 @@ def main():
         t1 = time.time()
         # dataloader['train_loader'].shuffle()
         for iter, (x, y) in enumerate(train_loader):
-            trainx = x.to(device)  # 64 12 8*8 2
+            trainx = x.to(device)  # 64 12 576 2
             trainy = y.to(device)
             metrics = engine.train(trainx, trainy)
             train_loss.append(metrics[0])
