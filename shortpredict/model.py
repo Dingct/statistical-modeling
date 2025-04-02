@@ -176,7 +176,7 @@ class Ding(nn.Module):
                 device,
                 input_dim=3,
                 channels=64,
-                num_nodes=8*8,
+                num_nodes=576,
                 input_len=12,
                 output_len=12,
                 dropout=0.1, 
