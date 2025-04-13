@@ -25,3 +25,7 @@ parser.add_argument("--output_len", type=int, default=12, help="out_len")
 ```
 python train.py --channels 64 --learning_rate 0.001
 ```
+# test.py
+取logs中的模型文件，导入数据并将真实结果、预测存于logs/.../.pt文件中
+# plot.ipynb
+取logs中的pt文件，绘制误差图，存于logs/.../png
