@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from util import StandardScaler
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有GPU换
@@ -23,11 +24,11 @@ parser.add_argument(
     "--weight_decay", type=float, default=0.0001, help="weight decay rate"
 )
 parser.add_argument('--checkpoint', type=str,
-                    default='./logs/2025-04-03-12-02-48-eastsea/best_model.pth', help='') # 换对应的pth
+                    default='./logs/2025-04-13-12-03-12-eastsea', help='') # 换对应的路径
 parser.add_argument('--plotheatmap', type=str, default='True', help='')
 args = parser.parse_args()
 
-def test(scaler,yhat,realy,dimen):
+def test(scaler,yhat,realy,dimen,args):
     amae = []
     amape = []
     awmape = []
@@ -37,7 +38,7 @@ def test(scaler,yhat,realy,dimen):
         # pred = scaler.inverse_transform(yhat[:, i, :, :])
         # real = scaler.inverse_transform(realy[:, i, :, :])
         pred = yhat[:, i, :, :]
-        real = yhat[:, i, :, :]
+        real = realy[:, i, :, :]
         if(dimen=="all"):
             metrics = util.testmetrics(pred, real)
         else:
@@ -52,17 +53,19 @@ def test(scaler,yhat,realy,dimen):
 
     log = 'On average over {:d} horizons, Test MAE: {:.4f}, Test MAPE: {:.4f}, Test RMSE: {:.4f}, Test WMAPE: {:.4f}'
     print(log.format(args.output_len,np.mean(amae), np.mean(amape), np.mean(armse),np.mean(awmape)))
-
+    # print(realy)
+    # print(yhat)
     realy = scaler.inverse_transform(realy)
     realy = realy.to("cpu")
     yhat = scaler.inverse_transform(yhat)
     yhat = yhat.to("cpu")
-
+    # print(realy)
+    # print(yhat)
     print(realy.shape)
     print(yhat.shape)
 
-    torch.save(realy,f"{dimen}_real.pt")
-    torch.save(yhat,f"{dimen}_pred.pt")
+    torch.save(realy,f"{args.checkpoint}/{dimen}_real.pt")
+    torch.save(yhat,f"{args.checkpoint}/{dimen}_pred.pt")
 
 def main():
     
@@ -81,7 +84,7 @@ def main():
             device, args.input_dim, args.channels, args.num_nodes, args.input_len, args.output_len, args.dropout
         )
     model.to(device)
-    model.load_state_dict(torch.load(args.checkpoint))
+    model.load_state_dict(torch.load(os.path.join(args.checkpoint,"best_model.pth")))
     model.eval()
 
     print('model load successfully')
@@ -107,9 +110,9 @@ def main():
     
     scalert = StandardScaler(mean=scaler.mean[0], std=scaler.std[0])
     scalers = StandardScaler(mean=scaler.mean[1], std=scaler.std[1])
-    test(scalert,yhat[...,0:1],realy[...,0:1],"temperature")
-    test(scalers,yhat[...,1:2],realy[...,1:2],"salt")
-    test(scaler,yhat,realy,"all")
+    # test(scalert,yhat[...,0:1],realy[...,0:1],"temperature",args)
+    test(scalers,yhat[...,1:2],realy[...,1:2],"salt",args)
+    # test(scaler,yhat,realy,"all",args)
 
 if __name__ == "__main__":
     main()

@@ -74,7 +74,6 @@ class trainer:
         self.model.train()
         self.optimizer.zero_grad()
         output = self.model(input)  # 64 12 576 2
-        
         real = real_val[...,0:2]  # 64 12 576 2 多因素
         # output = self.scaler.inverse_transform(output)  # 64 12 576 2
         # real = self.scaler.inverse_transform(real)  # 64 12 576 2
@@ -280,9 +279,10 @@ def main():
                 test_m = []
 
                 for j in range(args.output_len):
-                    pred = scaler.inverse_transform(yhat[:, j, :])
-                    real = scaler.inverse_transform(realy[:, j, :])
-                    # real = realy[:, :, j]
+                    # pred = scaler.inverse_transform(yhat[:, j, :])
+                    # real = scaler.inverse_transform(realy[:, j, :])
+                    pred = yhat[:, j, :, :]
+                    real = realy[:, j, :, :]
                     metrics = util.testmetrics(pred, real) # 多因素衡量方法
                     log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
                     print(
@@ -370,6 +370,8 @@ def main():
     for i in range(args.output_len):
         # pred = scaler.inverse_transform(yhat[:, i, :])
         # real = scaler.inverse_transform(realy[:, i, :])
+        pred = yhat[:, i, :, :]
+        real = realy[:, i, :, :]
         metrics = util.testmetrics(pred, real) # 多因素
         log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
         print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))
