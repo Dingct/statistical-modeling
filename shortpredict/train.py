@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有gpu换
 parser.add_argument("--data", type=str, default="eastsea", help="data path")
 parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海温，海盐，日期
-parser.add_argument("--channels", type=int, default=64, help="number of feature channels")
+parser.add_argument("--channels", type=int, default=32, help="number of feature channels")
 parser.add_argument("--num_nodes", type=int, default=24*24, help="number of nodes")
 parser.add_argument("--input_len", type=int, default=12, help="input_len")
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
@@ -25,7 +25,7 @@ parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
 parser.add_argument(
     "--weight_decay", type=float, default=0.0001, help="weight decay rate"
 )
-parser.add_argument("--epochs", type=int, default=500, help="")
+parser.add_argument("--epochs", type=int, default=100, help="")
 parser.add_argument("--print_every", type=int, default=10, help="")
 parser.add_argument(
     "--save",
@@ -36,7 +36,7 @@ parser.add_argument(
 parser.add_argument(
     "--es_patience",
     type=int,
-    default=50,
+    default=20,
     help="quit if no improvement after this many iterations",
 )
 args = parser.parse_args()
@@ -76,10 +76,10 @@ class trainer:
         output = self.model(input)  # 64 12 576 2
         
         real = real_val[...,0:2]  # 64 12 576 2 多因素
-        predict = self.scaler.inverse_transform(output)  # 64 12 576 2
-        real = self.scaler.inverse_transform(real)  # 64 12 576 2
+        # output = self.scaler.inverse_transform(output)  # 64 12 576 2
+        # real = self.scaler.inverse_transform(real)  # 64 12 576 2
         
-        loss,mape,rmse,wmape = util.metrics(predict, real) # 多因素衡量方法
+        loss,mape,rmse,wmape = util.metrics(output, real) # 多因素衡量方法
         loss.backward()
         if self.clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
@@ -91,10 +91,10 @@ class trainer:
         self.model.eval()
         output = self.model(input)
         real = real_val[...,0:2] # 多因素
-        predict = self.scaler.inverse_transform(output)
-        real = self.scaler.inverse_transform(real)  # 64 12 576 2
+        # output = self.scaler.inverse_transform(output)
+        # real = self.scaler.inverse_transform(real)  # 64 12 8*8 2
 
-        loss,mape,rmse,wmape = util.metrics(predict, real) # 多因素衡量方法
+        loss,mape,rmse,wmape = util.metrics(output, real) # 多因素衡量方法
 
         return loss.item(), mape, rmse, wmape
 
@@ -164,7 +164,7 @@ def main():
         t1 = time.time()
         # dataloader['train_loader'].shuffle()
         for iter, (x, y) in enumerate(train_loader):
-            trainx = x.to(device)  # 64 12 576 2
+            trainx = x.to(device)  # 64 12 8*8 2
             trainy = y.to(device)
             metrics = engine.train(trainx, trainy)
             train_loss.append(metrics[0])
@@ -248,7 +248,7 @@ def main():
 
         if mvalid_loss < loss:
             print("###Update tasks appear###")
-            if i <= 50:
+            if i <= 20:
                 # It is not necessary to print the results of the test set when epoch is less than 50, because the model has not yet converged.
                 loss = mvalid_loss
                 torch.save(engine.model.state_dict(), path + "best_model.pth")
@@ -257,7 +257,7 @@ def main():
                 print("Updating! Valid Loss:", mvalid_loss, end=", ")
                 print("epoch: ", i)
 
-            elif i > 50:
+            elif i > 20:
                 outputs = []
                 test_labels = []
 
@@ -368,8 +368,8 @@ def main():
     test_m = []
 
     for i in range(args.output_len):
-        pred = scaler.inverse_transform(yhat[:, i, :])
-        real = scaler.inverse_transform(realy[:, i, :])
+        # pred = scaler.inverse_transform(yhat[:, i, :])
+        # real = scaler.inverse_transform(realy[:, i, :])
         metrics = util.testmetrics(pred, real) # 多因素
         log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
         print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))

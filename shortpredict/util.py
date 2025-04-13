@@ -223,3 +223,11 @@ def testmetrics(predict, real):
     wmape = (wmape1+wmape2)/2
 
     return loss, mape, rmse, wmape
+
+def testmetric(predict, real):
+    loss = MAE_torch(predict, real, 0.0).item()
+    mape = MAPE_torch(predict, real, 0.0).item()
+    rmse = RMSE_torch(predict, real, 0.0).item()
+    wmape = WMAPE_torch(predict, real, 0.0).item()
+
+    return loss, mape, rmse, wmape
