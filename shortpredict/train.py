@@ -5,17 +5,27 @@ import argparse
 import time
 import util as util
 import os
+import json  # 添加json模块用于保存参数
 from util import *
 import random
 from model import Ding
 import torch.optim as optim
 import time
 
+# 添加从long文件夹导入AGCRN模型的支持
+try:
+    from long import AGCRNAdapter
+except ImportError as e:
+    print("Warning: 无法导入AGCRN模型，可能需要安装或检查路径。如不使用AGCRN模型可忽略此警告。")
+    print(f"详细错误: {e}")
+    # 定义一个可用变量避免NameError
+    AGCRNAdapter = None
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有gpu换
 parser.add_argument("--data", type=str, default="eastsea", help="data path")
 parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海温，海盐，日期
-parser.add_argument("--channels", type=int, default=32, help="number of feature channels")
+parser.add_argument("--channels", type=int, default=64, help="number of feature channels")
 parser.add_argument("--num_nodes", type=int, default=24*24, help="number of nodes")
 parser.add_argument("--input_len", type=int, default=12, help="input_len")
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
@@ -25,7 +35,7 @@ parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
 parser.add_argument(
     "--weight_decay", type=float, default=0.0001, help="weight decay rate"
 )
-parser.add_argument("--epochs", type=int, default=100, help="")
+parser.add_argument("--epochs", type=int, default=500, help="")
 parser.add_argument("--print_every", type=int, default=10, help="")
 parser.add_argument(
     "--save",
@@ -36,9 +46,22 @@ parser.add_argument(
 parser.add_argument(
     "--es_patience",
     type=int,
-    default=20,
+    default=50,
     help="quit if no improvement after this many iterations",
 )
+# 添加模型选择参数
+parser.add_argument(
+    "--model",
+    type=str,
+    default="ding",
+    choices=["ding", "agcrn"],
+    help="选择使用的模型: ding(原始短时模型)或agcrn(长时模型)"
+)
+# AGCRN特有参数
+parser.add_argument("--cheb_k", type=int, default=3, help="Chebyshev多项式阶数")
+parser.add_argument("--embed_dim", type=int, default=10, help="节点嵌入维度")
+parser.add_argument("--num_layers", type=int, default=2, help="DCRNN层数")
+
 args = parser.parse_args()
 
 current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -57,10 +80,30 @@ class trainer:
         lrate,
         wdecay,
         device,
+        model_name="ding", 
+        cheb_k=3, 
+        embed_dim=10, 
+        num_layers=2
     ):
-        self.model = Ding(
-            device, input_dim, channels, num_nodes, input_len, output_len, dropout
-        )
+        # 根据模型名称选择相应的模型
+        if model_name.lower() == "agcrn":
+            self.model = AGCRNAdapter(
+                device=device, 
+                input_dim=input_dim, 
+                channels=channels, 
+                num_nodes=num_nodes, 
+                input_len=input_len, 
+                output_len=output_len, 
+                dropout=dropout,
+                cheb_k=cheb_k,
+                embed_dim=embed_dim,
+                num_layers=num_layers
+            )
+        else:
+            self.model = Ding(
+                device, input_dim, channels, num_nodes, input_len, output_len, dropout
+            )
+        
         self.model.to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lrate, weight_decay=wdecay)
         self.scaler = scaler
@@ -74,11 +117,12 @@ class trainer:
         self.model.train()
         self.optimizer.zero_grad()
         output = self.model(input)  # 64 12 576 2
-        real = real_val[...,0:2]  # 64 12 576 2 多因素
-        # output = self.scaler.inverse_transform(output)  # 64 12 576 2
-        # real = self.scaler.inverse_transform(real)  # 64 12 576 2
         
-        loss,mape,rmse,wmape = util.metrics(output, real) # 多因素衡量方法
+        real = real_val[...,0:2]  # 64 12 576 2 多因素
+        predict = self.scaler.inverse_transform(output)  # 64 12 576 2
+        real = self.scaler.inverse_transform(real)  # 64 12 576 2
+        
+        loss,mape,rmse,wmape = util.metrics(predict, real) # 多因素衡量方法
         loss.backward()
         if self.clip is not None:
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
@@ -90,10 +134,10 @@ class trainer:
         self.model.eval()
         output = self.model(input)
         real = real_val[...,0:2] # 多因素
-        # output = self.scaler.inverse_transform(output)
-        # real = self.scaler.inverse_transform(real)  # 64 12 8*8 2
+        predict = self.scaler.inverse_transform(output)
+        real = self.scaler.inverse_transform(real)  # 64 12 576 2
 
-        loss,mape,rmse,wmape = util.metrics(output, real) # 多因素衡量方法
+        loss,mape,rmse,wmape = util.metrics(predict, real) # 多因素衡量方法
 
         return loss.item(), mape, rmse, wmape
 
@@ -113,6 +157,13 @@ def main():
     print("当前进程ID:", os.getpid())
     seed_it(6666)
 
+    # 基于选择的模型和预测长度打印相关信息
+    if args.model.lower() == "agcrn":
+        print(f"使用AGCRN模型进行{'长时' if args.output_len > 12 else '短时'}时空序列预测")
+        print(f"AGCRN模型参数 - 输入长度: {args.input_len}, 输出长度: {args.output_len}, Chebyshev阶数: {args.cheb_k}, 嵌入维度: {args.embed_dim}, 层数: {args.num_layers}")
+    else:
+        print(f"使用Ding模型进行{'长时' if args.output_len > 12 else '短时'}时空序列预测")
+    
     data = args.data
     if args.data == "Yangtze": # 17
         args.num_nodes = 8*8
@@ -138,6 +189,18 @@ def main():
 
     if not os.path.exists(path):
         os.makedirs(path)
+        
+    # 在训练开始前保存参数
+    # 获取当前时间作为参数的一部分，用于区分不同的运行
+    current_timestamp = time.strftime("%Y%m%d_%H%M%S")
+    params = vars(args)  # 将args对象转换为字典
+    params["timestamp"] = current_timestamp
+    params["original_data"] = data  # 保存原始数据路径，因为args.data已被修改
+    
+    # 保存参数
+    with open(f"{path}/params_{current_timestamp}.json", "w") as f:
+        json.dump(params, f, indent=4)
+    print(f"参数已保存至: {path}/params_{current_timestamp}.json")
 
     engine = trainer(
         scaler,
@@ -150,6 +213,10 @@ def main():
         args.learning_rate,
         args.weight_decay,
         device,
+        args.model,
+        args.cheb_k,
+        args.embed_dim,
+        args.num_layers
     )
 
     print("start training...", flush=True)
@@ -163,7 +230,7 @@ def main():
         t1 = time.time()
         # dataloader['train_loader'].shuffle()
         for iter, (x, y) in enumerate(train_loader):
-            trainx = x.to(device)  # 64 12 8*8 2
+            trainx = x.to(device)  # 64 12 576 2
             trainy = y.to(device)
             metrics = engine.train(trainx, trainy)
             train_loss.append(metrics[0])
@@ -247,7 +314,7 @@ def main():
 
         if mvalid_loss < loss:
             print("###Update tasks appear###")
-            if i <= 20:
+            if i <= 50:
                 # It is not necessary to print the results of the test set when epoch is less than 50, because the model has not yet converged.
                 loss = mvalid_loss
                 torch.save(engine.model.state_dict(), path + "best_model.pth")
@@ -256,7 +323,7 @@ def main():
                 print("Updating! Valid Loss:", mvalid_loss, end=", ")
                 print("epoch: ", i)
 
-            elif i > 20:
+            elif i > 50:
                 outputs = []
                 test_labels = []
 
@@ -279,10 +346,9 @@ def main():
                 test_m = []
 
                 for j in range(args.output_len):
-                    # pred = scaler.inverse_transform(yhat[:, j, :])
-                    # real = scaler.inverse_transform(realy[:, j, :])
-                    pred = yhat[:, j, :, :]
-                    real = realy[:, j, :, :]
+                    pred = scaler.inverse_transform(yhat[:, j, :])
+                    real = scaler.inverse_transform(realy[:, j, :])
+                    # real = realy[:, :, j]
                     metrics = util.testmetrics(pred, real) # 多因素衡量方法
                     log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
                     print(
@@ -368,10 +434,8 @@ def main():
     test_m = []
 
     for i in range(args.output_len):
-        # pred = scaler.inverse_transform(yhat[:, i, :])
-        # real = scaler.inverse_transform(realy[:, i, :])
-        pred = yhat[:, i, :, :]
-        real = realy[:, i, :, :]
+        pred = scaler.inverse_transform(yhat[:, i, :])
+        real = scaler.inverse_transform(realy[:, i, :])
         metrics = util.testmetrics(pred, real) # 多因素
         log = "Evaluate best model on test data for horizon {:d}, Test MAE: {:.4f}, Test RMSE: {:.4f}, Test MAPE: {:.4f}, Test WMAPE: {:.4f}"
         print(log.format(i + 1, metrics[0], metrics[2], metrics[1], metrics[3]))
