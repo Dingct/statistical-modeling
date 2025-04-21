@@ -12,7 +12,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有GPU换
 parser.add_argument("--data", type=str, default="eastsea", help="data path")
-parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海温，海盐，日期
+parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海盐，海温，日期
 parser.add_argument("--channels", type=int, default=32, help="dimension of nodes")
 parser.add_argument("--num_nodes", type=int, default=24*24, help="number of nodes")
 parser.add_argument("--input_len", type=int, default=12, help="input_len")
@@ -108,11 +108,11 @@ def main():
     yhat = torch.cat(outputs, dim=0)  # B 12 576 2
     yhat = yhat[:realy.size(0), ...]
     
-    scalert = StandardScaler(mean=scaler.mean[0], std=scaler.std[0])
-    scalers = StandardScaler(mean=scaler.mean[1], std=scaler.std[1])
-    # test(scalert,yhat[...,0:1],realy[...,0:1],"temperature",args)
-    test(scalers,yhat[...,1:2],realy[...,1:2],"salt",args)
-    # test(scaler,yhat,realy,"all",args)
+    scalers = StandardScaler(mean=scaler.mean[0], std=scaler.std[0])
+    scalert = StandardScaler(mean=scaler.mean[1], std=scaler.std[1])
+    test(scalers,yhat[...,0:1],realy[...,0:1],"salt",args)
+    test(scalert,yhat[...,1:2],realy[...,1:2],"temperature",args)
+    test(scaler,yhat,realy,"all",args)
 
 if __name__ == "__main__":
     main()
