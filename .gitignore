@@ -7,3 +7,6 @@ run_agcrn.py
 train_agcrn.py
 
 logs/
+
+*.pkl
+

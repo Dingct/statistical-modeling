@@ -21,6 +21,9 @@ parser.add_argument("--input_len", type=int, default=12, help="input_len")
 
 parser.add_argument("--output_len", type=int, default=12, help="out_len")
 
+# train_long.py
+快捷调用train.py，用于长时预测训练
+
 （2）训练示例：
 ```
 python train.py --channels 64 --learning_rate 0.001

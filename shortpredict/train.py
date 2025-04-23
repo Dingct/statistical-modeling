@@ -61,6 +61,8 @@ parser.add_argument(
 parser.add_argument("--cheb_k", type=int, default=3, help="Chebyshev多项式阶数")
 parser.add_argument("--embed_dim", type=int, default=10, help="节点嵌入维度")
 parser.add_argument("--num_layers", type=int, default=2, help="DCRNN层数")
+# 添加月度数据支持
+parser.add_argument("--use_monthly", action="store_true", help="是否使用月度数据")
 
 args = parser.parse_args()
 
@@ -168,11 +170,16 @@ def main():
     if args.data == "Yangtze": # 17
         args.num_nodes = 8*8
     args.data = "./val_data/" + args.data
+    
+    # 如果使用月度数据，修改数据目录名和加载逻辑
+    if args.use_monthly:
+        print("使用月度粒度数据进行预测")
 
     device = torch.device(args.device)
 
+    # 更新数据加载逻辑，支持月度数据
     train_loader, valid_loader, test_loader, scaler = util.load_data_with_dataloader(
-        args.data, args.batch_size, args.input_len, args.output_len, args.device, args.batch_size, args.batch_size
+        args.data, args.batch_size, args.input_len, args.output_len, args.device, args.batch_size, args.batch_size, args.use_monthly
     )
     loss = 9999999
     test_log = 999999
