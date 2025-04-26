@@ -10,6 +10,7 @@ from util import StandardScaler
 import os
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--model_type", type=str, default="stid", help="model type") # 'stid', 'lstm', 'gru', 'mlp'
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有GPU换
 parser.add_argument("--data", type=str, default="eastsea", help="data path")
 parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海盐，海温，日期
@@ -24,7 +25,7 @@ parser.add_argument(
     "--weight_decay", type=float, default=0.0001, help="weight decay rate"
 )
 parser.add_argument('--checkpoint', type=str,
-                    default='./logs/2025-04-13-12-03-12-eastsea', help='') # 换对应的路径
+                    default='./logs/2025-04-22-16-44-52-eastsea', help='') # 换对应的路径
 parser.add_argument('--plotheatmap', type=str, default='True', help='')
 args = parser.parse_args()
 
@@ -81,7 +82,7 @@ def main():
 
     # 要改load哪个模型
     model = Ding(
-            device, args.input_dim, args.channels, args.num_nodes, args.input_len, args.output_len, args.dropout
+            device, args.model_type, args.input_dim, args.channels, args.num_nodes, args.input_len, args.output_len, args.dropout
         )
     model.to(device)
     model.load_state_dict(torch.load(os.path.join(args.checkpoint,"best_model.pth")))

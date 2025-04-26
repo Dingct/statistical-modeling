@@ -11,7 +11,9 @@ from model import Ding
 import torch.optim as optim
 import time
 
+
 parser = argparse.ArgumentParser()
+parser.add_argument("--model_type", type=str, default="stid", help="model type") # 'stid', 'lstm', 'gru', 'mlp'
 parser.add_argument("--device", type=str, default="cpu", help="") # 若有gpu换
 parser.add_argument("--data", type=str, default="eastsea", help="data path")
 parser.add_argument("--input_dim", type=int, default=3, help="input_dim") # 海盐，海温，日期
@@ -59,7 +61,7 @@ class trainer:
         device,
     ):
         self.model = Ding(
-            device, input_dim, channels, num_nodes, input_len, output_len, dropout
+            device, args.model_type, input_dim, channels, num_nodes, input_len, output_len, dropout
         )
         self.model.to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lrate, weight_decay=wdecay)
@@ -155,6 +157,7 @@ def main():
     print("start training...", flush=True)
 
     for i in range(1, args.epochs + 1):
+        
         # train
         train_loss = []
         train_mape = []
@@ -188,6 +191,7 @@ def main():
         print(log.format(i, (t2 - t1)))
         train_time.append(t2 - t1)
 
+        
         # validation
         valid_loss = []
         valid_mape = []
