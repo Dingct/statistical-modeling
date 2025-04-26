@@ -34,12 +34,19 @@ class TrafficFlowDataset(Dataset):
         sample = torch.from_numpy(self.dataset_data[idx]).float(), torch.from_numpy(self.dataset_labels[idx]).float()
         return sample
     
-def load_data_with_dataloader(dataset_dir, batch_size, input_len, output_len, device, valid_batch_size=None, test_batch_size=None):
-    with open(os.path.join(dataset_dir, "data_in_{0}_out_{1}.pkl").format(input_len, output_len), "rb") as f:
+def load_data_with_dataloader(dataset_dir, batch_size, input_len, output_len, device, valid_batch_size=None, test_batch_size=None, use_monthly=False):
+    # 如果启用月度数据，修改目录路径
+    if use_monthly and not dataset_dir.endswith("_monthly"):
+        dataset_dir = f"{dataset_dir}_monthly"
+    
+    # 设置文件前缀
+    prefix = "monthly_" if use_monthly else ""
+    
+    with open(os.path.join(dataset_dir, f"{prefix}data_in_{input_len}_out_{output_len}.pkl"), "rb") as f:
         data_file = pickle.load(f)
-    with open(os.path.join(dataset_dir, "index_in_{0}_out_{1}.pkl").format(input_len, output_len), "rb") as f:
+    with open(os.path.join(dataset_dir, f"{prefix}index_in_{input_len}_out_{output_len}.pkl"), "rb") as f:
         index = pickle.load(f)
-    with open(os.path.join(dataset_dir, "scaler_in_{0}_out_{1}.pkl").format(input_len, output_len), "rb") as f:
+    with open(os.path.join(dataset_dir, f"scaler_in_{input_len}_out_{output_len}.pkl"), "rb") as f:
         scaler_ = pickle.load(f)
     
     # 获取平均值和标准差
